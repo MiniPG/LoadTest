@@ -52,7 +52,7 @@ terraform apply
 # LoadTest
 ./bin/aws.sh scenarios/baseline.js
 
-# destroy 전에 Grafana 패널 캡처 (모니터링 서버도 함께 지워져 그래프가 사라짐)
+# destroy 전에 확인 (모니터링 서버·DB도 함께 지워져 기록이 사라짐) — 아래 "destroy 전 확인" 참고
 
 # 끝나면 반드시 Infra/env에서
 terraform destroy
@@ -68,3 +68,18 @@ terraform destroy
 
 - k6가 잰 시간에는 맥 ↔ ALB 인터넷 왕복과 ALB 처리 시간이 들어간다.
 - 서버 처리 시간은 Grafana의 http.server.requests(PG 안에서 잰 시간)로 따로 본다. 두 값의 차이가 네트워크·ALB 몫이다.
+
+## destroy 전 확인
+
+destroy하면 모니터링 서버(Prometheus·Loki·Grafana)와 DB가 함께 지워져, 그래프·로그·데드락 기록을 다시 볼 수 없다.
+
+1. **에러 로그**: Grafana `pg-overview` 로그 줄에서 측정 구간의 ERROR·WARN을 확인한다. 예외가 있으면 스택 트레이스를 저장한다.
+2. **데드락**: 로그에 `Deadlock found`가 있으면 PG DB에서 마지막 데드락의 두 트랜잭션과 락을 저장한다.
+   ```bash
+   aws ssm start-session --target <pg-db 인스턴스 ID>   # Infra/env: terraform output instances
+   sudo docker exec mysql sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SHOW ENGINE INNODB STATUS\G"' \
+     | sed -n '/LATEST DETECTED DEADLOCK/,/TRANSACTIONS/p'
+   ```
+3. **실패 응답**: k6 요약에 실패가 있으면 서버 쪽 5xx와 맞춰 본다. 새로 생긴 `status="500"` 시계열은 `increase()`가 첫 값을 0으로 계산하므로, 개수는 `http_server_requests_seconds_count{status=~"5.."}` 원래 값으로 확인한다.
+4. **Grafana 캡처**: 측정 구간으로 시간을 맞추고, 비교할 패널(SLO 달성률, RPS, Tomcat 스레드, 커넥션 사용량·대기·획득 시간, 호스트 CPU, MySQL QPS, 쿼리별 실행 횟수)을 캡처한다.
+
