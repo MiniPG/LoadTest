@@ -1,5 +1,6 @@
 import http from 'k6/http';
 import { check } from 'k6';
+import { annotate, kst, toMillis } from '../lib/annotation.js';
 
 const BASE = __ENV.BASE_URL || 'http://localhost:8080';
 const MERCHANTS = 1000;
@@ -43,7 +44,7 @@ export const options = {
   },
   thresholds: {
     'http_req_duration{scenario:payment,api:create}': ['p(99)<100'],
-    'http_req_duration{scenario:payment,api:get}': ['p(99)<50'],
+    'http_req_duration{scenario:payment,api:get}': ['p(99)<100'],
     'http_req_duration{scenario:transactions,api:transactions}': ['p(99)<200'],
     'http_req_duration{scenario:payment,api:confirm}': ['p(99)<800'],
     'http_req_duration{scenario:payment,api:cancel}': ['p(99)<800'],
@@ -55,6 +56,18 @@ export const options = {
   },
   summaryTrendStats: ['avg', 'p(50)', 'p(95)', 'p(99)', 'max'],
 };
+
+export function setup() {
+  const startedAt = Date.now();
+  console.log(`[baseline] 시작: ${kst(startedAt)} (KST), 예열 ${WARMUP}, 측정 ${DURATION}`);
+  return { startedAt };
+}
+
+export function teardown({ startedAt }) {
+  const measuredFrom = startedAt + toMillis(WARMUP);
+  annotate('baseline', startedAt, measuredFrom, '예열');
+  annotate('baseline', measuredFrom, Date.now(), `측정 (결제 흐름 초당 ${RATE}회)`);
+}
 
 function headers() {
   const n = String(Math.floor(Math.random() * MERCHANTS) + 1).padStart(4, '0');

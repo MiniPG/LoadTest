@@ -55,5 +55,14 @@ k6 run -e BASE_URL=https://pg.on-me-app.com scenarios/baseline.js
 terraform destroy
 ```
 
+- 시작할 때와 끝날 때 예열·측정 구간의 시각(KST)을 출력한다.
+- `GRAFANA_URL`과 `GRAFANA_PASSWORD`를 주면 끝날 때 Grafana에 예열·측정 구간을 주석(annotation)으로 남긴다. 대시보드에서 그 구간이 색칠되어 보인다.
+
+```bash
+export GRAFANA_URL=$(cd ../Infra/env && terraform output -raw grafana_url)
+export GRAFANA_PASSWORD=$(cd ../Infra/env && terraform output -raw grafana_password_command | sh)
+k6 run -e BASE_URL=https://pg.on-me-app.com scenarios/baseline.js
+```
+
 - k6가 잰 시간에는 맥 ↔ ALB 인터넷 왕복과 ALB 처리 시간이 들어간다.
 - 서버 처리 시간은 Grafana의 http.server.requests(PG 안에서 잰 시간)로 따로 본다. 두 값의 차이가 네트워크·ALB 몫이다.
