@@ -1,6 +1,6 @@
 import http from 'k6/http';
 import { paymentFlow, transactionsFlow } from '../lib/flows.js';
-import { annotate, kst, toMillis } from '../lib/annotation.js';
+import { kst, mark, toMillis } from '../lib/annotation.js';
 
 const STEPS = (__ENV.STEPS || '2,5,10,20,40').split(',').map(Number);
 const WARMUP = __ENV.WARMUP || '1m';
@@ -91,7 +91,8 @@ export function transactions({ startedAt }) {
 export function teardown({ startedAt }) {
   for (const w of WINDOWS) {
     if (w.step === 'ramp') continue;
-    const text = w.step === 'warmup' ? '예열' : `결제 흐름 초당 ${w.step}회`;
-    annotate('capacity', startedAt + w.from, startedAt + w.to, text);
+    const text = w.step === 'warmup' ? '예열 시작' : `결제 흐름 초당 ${w.step}회 시작`;
+    mark('capacity', startedAt + w.from, text);
   }
+  mark('capacity', Date.now(), '종료');
 }

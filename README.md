@@ -50,19 +50,20 @@ terraform apply
 ./scripts/seed-pg-merchants.sh
 
 # LoadTest
-k6 run -e BASE_URL=https://pg.on-me-app.com scenarios/baseline.js
+./bin/aws.sh scenarios/baseline.js
+
+# destroy 전에 Grafana 패널 캡처 (모니터링 서버도 함께 지워져 그래프가 사라짐)
 
 # 끝나면 반드시 Infra/env에서
 terraform destroy
 ```
 
-- 시작할 때와 끝날 때 예열·측정 구간의 시각(KST)을 출력한다.
-- `GRAFANA_URL`과 `GRAFANA_PASSWORD`를 주면 끝날 때 Grafana에 예열·측정 구간을 주석(annotation)으로 남긴다. 대시보드에서 그 구간이 색칠되어 보인다.
+- 끝날 때 Grafana에 테스트 구간을 주석(annotation)으로 남긴다. baseline은 예열·측정 구간을 띠로, capacity는 단계 시작마다 세로선으로 표시한다. 터미널에도 같은 시각(KST)을 출력한다.
+- 로컬(`BASE_URL`이 없거나 localhost)은 로컬 Grafana(`localhost:3000`, admin/admin)에 자동으로 남긴다. Grafana가 꺼져 있으면 3초 뒤 경고만 남기고 넘어간다.
+- AWS는 `bin/aws.sh`로 실행한다. Infra terraform output에서 PG 주소, Grafana 주소·비밀번호를 읽어 그 실행에만 넘긴다(터미널에 export하지 않음).
 
 ```bash
-export GRAFANA_URL=$(cd ../Infra/env && terraform output -raw grafana_url)
-export GRAFANA_PASSWORD=$(cd ../Infra/env && terraform output -raw grafana_password_command | sh)
-k6 run -e BASE_URL=https://pg.on-me-app.com scenarios/baseline.js
+./bin/aws.sh scenarios/capacity.js
 ```
 
 - k6가 잰 시간에는 맥 ↔ ALB 인터넷 왕복과 ALB 처리 시간이 들어간다.
