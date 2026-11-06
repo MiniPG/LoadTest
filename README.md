@@ -83,3 +83,22 @@ destroy하면 모니터링 서버(Prometheus·Loki·Grafana)와 DB가 함께 지
 3. **실패 응답**: k6 요약에 실패가 있으면 서버 쪽 5xx와 맞춰 본다. 새로 생긴 `status="500"` 시계열은 `increase()`가 첫 값을 0으로 계산하므로, 개수는 `http_server_requests_seconds_count{status=~"5.."}` 원래 값으로 확인한다.
 4. **Grafana 캡처**: 측정 구간으로 시간을 맞추고, 비교할 패널(SLO 달성률, RPS, Tomcat 스레드, 커넥션 사용량·대기·획득 시간, 호스트 CPU, MySQL QPS, 쿼리별 실행 횟수)을 캡처한다.
 
+
+## JFR 분석
+
+Infra에서 `pg_jfr_enabled = true`로 띄우고 `./scripts/fetch-pg-jfr.sh ../LoadTest/results`로 녹화를 가져온 뒤, 보고 싶은 구간(KST)을 지정해 요약한다. JDK 21 이상 필요.
+
+```bash
+java tools/jfr/JfrReport.java results/pg-<시각>.jfr 2026-11-06T10:20:00+09:00 2026-11-06T10:28:30+09:00
+```
+
+| 출력 | 뜻 |
+|---|---|
+| 스택에 포함된 비율 | 호출 경로에 그 패키지가 걸쳐 있는 표본의 비율. 합이 100%를 넘는다 |
+| 실제로 CPU를 쓴 라이브러리 | 스택 위에서 처음 나오는 JDK 밖 패키지. `HashMap`처럼 모두가 쓰는 JDK 코드를 건너뛰고 누가 CPU를 태웠는지 본다 |
+| 표본이 찍힌 스레드 | 요청 스레드인지 배경 작업인지 |
+| MySQL 드라이버 | 드라이버 안에서 돌던 메서드와, 드라이버로 들어온 입구·호출자 |
+| 스레드별 CPU | JFR 자기 스레드(`JFR Recorder Thread` 등)의 몫으로 오버헤드를 가늠 |
+| 새로 만들어진 스레드 수 | 요청마다 스레드를 새로 만드는 곳이 있는지 |
+
+전체를 한눈에 보려면 `jfr view hot-methods <파일>`, 플레임 그래프는 JDK Mission Control로 연다.
