@@ -51,7 +51,7 @@ export const options = {
       startRate: STEPS[0],
       timeUnit: '1s',
       preAllocatedVUs: 50,
-      maxVUs: 1000,
+      maxVUs: Number(__ENV.MAX_VUS || 2000),
       stages: stages(),
     },
     transactions: {
