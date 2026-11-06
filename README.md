@@ -73,7 +73,8 @@ terraform destroy
 
 1. **PG가 새 이미지로 떠 있는지**: 머지 후 떠 있는 EC2는 자동으로 새 이미지를 받지 않는다. Grafana(Prometheus)에서 `process_start_time_seconds{job="pg-server"}`가 이미지 빌드(Build & Push) 뒤인지 확인하고, 아니면 Infra/env에서 `terraform apply -replace=aws_instance.pg`
 2. **다른 k6가 돌고 있지 않은지**: `pgrep -fl k6`. 끝난 뒤 Grafana 주석이 한 세트인지도 확인
-3. **JVM이 막 재시작됐다면 낮은 단계부터**: JFR 회수 등으로 PG가 재시작된 직후 높은 부하를 바로 걸면 JIT가 데워지지 않아 무너진다(`STEPS=80`을 예열 없이 걸었을 때 CPU 100% 약 3분). capacity는 10단계부터 시작한다
+3. **직전 측정에서 1시간이 지났는지**: 거래 목록 시나리오는 최근 1시간 거래를 최대 100건 가져온다. 같은 DB에서 1시간 안에 다시 측정하면 직전 측정의 거래(가맹점당 약 80건)가 응답에 담겨 처음부터 100건씩 내려가고, 받는 데이터가 약 60% 늘어 결과를 비교할 수 없다(8차 재측정에서 겪음). 1시간 넘게 기다리거나 destroy 후 새로 띄운다
+4. **JVM이 막 재시작됐다면 낮은 단계부터**: JFR 회수 등으로 PG가 재시작된 직후 높은 부하를 바로 걸면 JIT가 데워지지 않아 무너진다(`STEPS=80`을 예열 없이 걸었을 때 CPU 100% 약 3분). capacity는 10단계부터 시작한다
 
 ## destroy 전 확인
 
