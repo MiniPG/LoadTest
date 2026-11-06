@@ -69,6 +69,12 @@ terraform destroy
 - k6가 잰 시간에는 맥 ↔ ALB 인터넷 왕복과 ALB 처리 시간이 들어간다.
 - 서버 처리 시간은 Grafana의 http.server.requests(PG 안에서 잰 시간)로 따로 본다. 두 값의 차이가 네트워크·ALB 몫이다.
 
+## 측정 전 확인
+
+1. **PG가 새 이미지로 떠 있는지**: 머지 후 떠 있는 EC2는 자동으로 새 이미지를 받지 않는다. Grafana(Prometheus)에서 `process_start_time_seconds{job="pg-server"}`가 이미지 빌드(Build & Push) 뒤인지 확인하고, 아니면 Infra/env에서 `terraform apply -replace=aws_instance.pg`
+2. **다른 k6가 돌고 있지 않은지**: `pgrep -fl k6`. 끝난 뒤 Grafana 주석이 한 세트인지도 확인
+3. **JVM이 막 재시작됐다면 낮은 단계부터**: JFR 회수 등으로 PG가 재시작된 직후 높은 부하를 바로 걸면 JIT가 데워지지 않아 무너진다(`STEPS=80`을 예열 없이 걸었을 때 CPU 100% 약 3분). capacity는 10단계부터 시작한다
+
 ## destroy 전 확인
 
 destroy하면 모니터링 서버(Prometheus·Loki·Grafana)와 DB가 함께 지워져, 그래프·로그·데드락 기록을 다시 볼 수 없다.
