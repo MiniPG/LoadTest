@@ -19,6 +19,7 @@ Card-Server(8081)와 PG-Server(8080)를 띄운다.
 |---|---|
 | scenarios/capacity.js | 용량 측정. 예열 1분 뒤 결제 흐름을 초당 2 → 5 → 10 → 20 → 40회로 올리며 단계마다 30초 증가 + 3분 유지. 거래 목록은 결제의 1/10. 결제 VU 상한은 2000(`MAX_VUS`로 변경). 요청에 step 태그를 붙여 단계별 p99·실패율을 따로 본다 |
 | scenarios/baseline.js | 저부하 기준선. 예열 1분 뒤 결제 흐름 초당 2회(생성 → 승인 → 조회, 20%는 부분취소) + 거래 목록 조회 5초에 1회 |
+| scenarios/card-fault.js | 카드사 장애 실험. 예열 초당 40회 3분 → 200회로 올려 유지하며 normal 2분, slow 1분, 회복 2분, hang 1분, 회복 3분, fail 1분, 회복 2분 구간을 phase 태그로 나눈다. 장애는 `bin/card-fault-run.sh`가 같은 시각에 `Infra/scripts/card-fault.sh`로 켜고 끈다 |
 
 - 요청마다 m_load_0001 ~ m_load_1000 중 하나를 무작위로 사용한다.
 - 4xx는 정상 응답으로 보고, 5xx와 타임아웃만 실패로 센다.
