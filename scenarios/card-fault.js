@@ -42,6 +42,11 @@ function thresholds() {
       result[`http_req_duration{api:${api},phase:${p.name}}`] = ['p(99)<100000'];
       result[`http_req_failed{api:${api},phase:${p.name}}`] = ['rate<1.01'];
     }
+    for (const api of ['create', 'get']) {
+      for (const part of ['blocked', 'connecting', 'tls_handshaking', 'waiting']) {
+        result[`http_req_${part}{api:${api},phase:${p.name}}`] = ['p(99)<100000'];
+      }
+    }
   }
   return result;
 }
