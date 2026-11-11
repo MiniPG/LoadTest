@@ -36,6 +36,6 @@ schedule "$START" &
 SCHEDULER=$!
 trap '"$FAULT" 500 >/dev/null 2>&1 || true; kill $SCHEDULER 2>/dev/null || true' EXIT
 
-"$ROOT/bin/aws.sh" scenarios/card-fault.js 2>&1 | tee -a "$LOG"
+"$ROOT/bin/aws.sh" --quiet scenarios/card-fault.js 2>&1 | tee -a "$LOG"
 wait $SCHEDULER || true
 echo "로그: $LOG"
